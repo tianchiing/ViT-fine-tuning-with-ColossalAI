@@ -1,0 +1,24 @@
+numpy
+tqdm
+psutil
+packaging
+pre-commit
+rich
+click
+fabric
+contexttimer
+ninja
+torch>=1.12
+safetensors
+einops
+pydantic
+ray
+sentencepiece
+google
+protobuf
+colossalai >= 0.1.12
+torch >= 1.8.1
+numpy>=1.24.1
+tqdm>=4.61.2
+transformers>=4.20.0
+datasets
