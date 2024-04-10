@@ -17,7 +17,7 @@ TP_SIZE=2
 PP_SIZE=2
 
 # number of gpus to use
-GPUNUM=4
+GPUNUM=1
 
 # batch size per data parallel group
 BS=16
