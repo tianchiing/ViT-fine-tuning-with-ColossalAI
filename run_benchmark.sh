@@ -5,6 +5,8 @@ export BS=8
 export MEMCAP=0
 export GPUNUM=1
 
+for BS in 8 32
+do
 for PLUGIN in "torch_ddp" "torch_ddp_fp16" "low_level_zero" "gemini" "hybrid_parallel"
 do
 
@@ -18,4 +20,5 @@ colossalai run \
   --plugin ${PLUGIN} \
   --batch_size ${BS}
 
+done
 done
