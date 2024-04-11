@@ -6,7 +6,7 @@ The model used in this experiment is Vision Transformer (ViT), a visual model ba
 
 In this example originally from Colossal-AI, the pretrained weights of ViT loaded from HuggingFace was used.
 
-The dataset used in this example's demo is [Beans](https://huggingface.co/datasets/AI-Lab-Makerere/beans). This is a set of images of beans leaf, labelled with diseased or healthy leaf.
+The dataset used in this example's demo is [Beans](https://huggingface.co/datasets/AI-Lab-Makerere/beans). This is a set of images of beans leaf, labelled with ['angular_leaf_spot', 'bean_rust', 'healthy'].
 
 This example supports plugins including TorchDDPPlugin (DDP), LowLevelZeroPlugin (Zero1/Zero2), GeminiPlugin (Gemini) and HybridParallelPlugin (any combination of tensor/pipeline/data parallel).
 
@@ -15,13 +15,9 @@ This example supports plugins including TorchDDPPlugin (DDP), LowLevelZeroPlugin
 
 Make sure the dependencies are configured correctly.
 
-You need to have cuda version 11.3 and corresponding pytorch to run the example.
+You need to have cuda version 11.6 and corresponding pytorch to run the example.
 
-```bash
-pip install torch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu113
-```
-
-If your cuda version is not 11.3, or if you get relevant error messages. Check your cuda version 
+If your cuda version is not 11.6, or if you get relevant error messages. Check your cuda version 
 ```bash
 lspci | grep -i nvidia
 ```
@@ -50,36 +46,38 @@ sudo apt install libnvidia-common-470
 sudo apt install libnvidia-gl-470
 sudo apt install nvidia-driver-470
 
+
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
 sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
-sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
-sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
+wget https://developer.download.nvidia.com/compute/cuda/11.6.0/local_installers/cuda-repo-ubuntu2004-11-6-local_11.6.0-510.39.01-1_amd64.deb
+sudo dpkg -i cuda-repo-ubuntu2004-11-6-local_11.6.0-510.39.01-1_amd64.deb
+sudo apt-key add /var/cuda-repo-ubuntu2004-11-6-local/7fa2af80.pub
 sudo apt-get update
 
- # installing CUDA-11.3
-sudo apt install cuda-11-3
+sudo add-apt-repository ppa:cloudhan/liburcu6
+sudo apt update
+sudo apt install liburcu6
+
+
+sudo apt install cuda-11-6
 
 # setup your paths
-echo 'export PATH=/usr/local/cuda-11.3/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.3/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+echo 'export PATH=/usr/local/cuda-11.6/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.6/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
 source ~/.bashrc
 sudo ldconfig
-
-# install cuDNN v11.3
-# First register here: https://developer.nvidia.com/developer-program/signup
-
-CUDNN_TAR_FILE="cudnn-11.3-linux-x64-v8.2.1.32.tgz"
-wget https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.1.32/11.3_06072021/cudnn-11.3-linux-x64-v8.2.1.32.tgz
-tar -xzvf ${CUDNN_TAR_FILE}
-
-# copy the following files into the cuda toolkit directory.
-sudo cp -P cuda/include/cudnn.h /usr/local/cuda-11.3/include
-sudo cp -P cuda/lib64/libcudnn* /usr/local/cuda-11.3/lib64/
-sudo chmod a+r /usr/local/cuda-11.3/lib64/libcudnn*
 
 # Finally, to verify the installation, check
 nvidia-smi
 nvcc -V
+```
+
+With Cuda 11.6, run the following command to install pytorch of specific version, and flash-attn dependencies.
+
+```bash
+pip install torch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+
+pip install flash-attn --no-build-isolation
 ```
 
 You also need to make sure that GCC versions is NOT LATER than 10. Downgrade the GCC version if required.
@@ -87,12 +85,14 @@ You also need to make sure that GCC versions is NOT LATER than 10. Downgrade the
 ```bash
 gcc --version
 
-sudo apt remove gcc
 sudo apt-get install gcc-9 g++-9 -y
 sudo ln -s /usr/bin/gcc-9 /usr/bin/gcc
 sudo ln -s /usr/bin/g++-9 /usr/bin/g++
 sudo ln -s /usr/bin/gcc-9 /usr/bin/cc
 sudo ln -s /usr/bin/g++-9 /usr/bin/c++
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 1
+sudo update-alternatives --config gcc
+
 ```
 
 
@@ -102,12 +102,6 @@ By running the following script:
 ```bash
 bash run_demo.sh
 ```
-You will finetune a a [ViT-base](https://huggingface.co/google/vit-base-patch16-224) model on this [dataset](https://huggingface.co/datasets/beans), with more than 8000 images of bean leaves. This dataset is for image classification task and there are 3 labels: ['angular_leaf_spot', 'bean_rust', 'healthy'].
-
-The script can be modified if you want to try another set of hyperparameters or change to another ViT model with different size.
-
-The demo code refers to this [blog](https://huggingface.co/blog/fine-tune-vit).
-
 
 
 ## Run Benchmark
@@ -116,8 +110,34 @@ You can run benchmark for ViT model by running the following script:
 ```bash
 bash run_benchmark.sh
 ```
-The script will test performance (throughput & peak memory usage) for each combination of hyperparameters. You can also play with this script to configure your own set of hyperparameters for testing.
+The script will test performance (throughput & peak memory usage) for each combination of hyperparameters.
 
 
 ## Experiment Result
 
+Experiment on A10:
+
+run_demo.sh
+Epoch | #1 | #2 | #3 
+--- | --- | --- | --- 
+it/s | 5.86 | 7.12 | 7.14 
+Average Loss | 0.0969 | 0.0716 | 0.0608
+Accuracy | 0.9766 | 0.9609 | 0.9688
+
+<br /><br />
+
+run_benchmark.sh
+
+batch size per gpu: 8
+plugin | torch_ddp | torch_ddp_fp16 | low_level_zero | gemini | hybrid_parallel
+--- | --- | --- | --- | --- | --- 
+throughput | 33.7902 | 50.0516 | 46.4627 | 34.8441 | 41.4561
+maximum memory usage per gpu | 1.80 GB | 1.91 GB | 1.65 GB | 663.17 MB | 1.73 GB
+it/s | 4.22 | 6.26 | 5.81 | 4.36 | 5.18
+
+batch size per gpu: 32
+plugin | torch_ddp | torch_ddp_fp16 | low_level_zero | gemini | hybrid_parallel
+--- | --- | --- | --- | --- | --- 
+throughput | 55.2553 | 115.7007 | 122.8285 | 115.3535 | 121.0082
+maximum memory usage per gpu | 2.34 GB | 2.25 GB | 1.66 GB | 663.17 MB | 1.92 GB
+it/s | 1.73 | 3.62 | 3.84 | 3.61 | 3.78
